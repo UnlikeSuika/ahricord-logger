@@ -1,6 +1,6 @@
 import discord
 
-release_ver = False
+release_ver = True
 
 client = discord.Client(max_messages=10000)
 
@@ -61,7 +61,7 @@ def get_info(message):
     ctn += "__Author name__: {}\n".format(message.author.name)
     ctn += "__Author ID__: {}\n".format(message.author.id)
     try:
-        ctn += "__Content__: {}\n".format(message.content)
+        ctn += "__Content__: {}\n".format(message.clean_content)
     except:
         ctn += "No message content.\n"
     ctn += "__Message ID__: {}\n".format(message.id)
