@@ -2,11 +2,11 @@ import discord
 
 client = discord.Client(max_messages=10000)
 
-with open("token.txt", "r") as token_file:
+with open("token_release.txt", "r") as token_file:
     token = token_file.read().split('\n')[0]
 
-channel_in = "483529593089687552" # UnlikeServer spam channel
-channel_out = "228160636742402058" # another spam channel
+channel_in = "368797408479412226" # ahricord main
+channel_out = "418062533732335626" # logger channel
 
 
 @client.event
