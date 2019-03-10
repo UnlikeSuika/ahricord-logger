@@ -14,6 +14,7 @@ else:
         token = token_file.read().split('\n')[0]
     channel_in = "483529593089687552" # UnlikeServer spam channel
     channel_out = "228160636742402058" # another spam channel
+    channel_mail = "228160636742402058"
 
 
 @client.event
@@ -31,10 +32,14 @@ async def on_ready():
 @client.event
 async def on_message(message):
     if not message.channel == client.get_channel(channel_in):
+        if str(type(message.channel)) == "<class 'discord.channel.PrivateChannel'>" and \
+                message.content.split()[0] == "!mail":
+            await process_mail(message)
         return
     ctn = "**========== Message received ==========**\n"
     ctn += get_info(message)
     await client.send_message(client.get_channel(channel_out), content=ctn)
+
 
 @client.event
 async def on_message_delete(message):
@@ -43,6 +48,7 @@ async def on_message_delete(message):
     ctn = "**========== Message deleted ==========**\n"
     ctn += get_info(message)
     await client.send_message(client.get_channel(channel_out), content=ctn)
+
 
 @client.event
 async def on_message_edit(before, after):
@@ -56,6 +62,7 @@ async def on_message_edit(before, after):
     ctn += get_info(after)
     await client.send_message(client.get_channel(channel_out), content=ctn)
 
+
 def get_info(message):
     ctn = "__Time__: {}\n".format(str(message.timestamp))
     ctn += "__Author name__: {}\n".format(message.author.name)
@@ -66,5 +73,15 @@ def get_info(message):
         ctn += "No message content.\n"
     ctn += "__Message ID__: {}\n".format(message.id)
     return ctn
+
+
+# TODO: saving log of mails, adding report functionality
+async def process_mail(message):
+    # assume that the content string starts with "!mail"
+    ctn = "**========== New mail ==========**\n"
+    ctn += "__Message ID__: {}\n".format(message.author.id)
+    ctn += "__Content__: {}\n".format(message.content[5:].strip())
+    await client.send_message(client.get_channel(channel_mail), content=ctn)
+
 
 client.run(token)
