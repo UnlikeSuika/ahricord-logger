@@ -1,8 +1,10 @@
 import discord
+import json
 
 release_ver = False
-
 client = discord.Client(max_messages=10000)
+mail_json_path = "mails.json"
+mail_data = None
 
 if release_ver:
     with open("token_release.txt", "r") as token_file:
@@ -27,6 +29,7 @@ async def on_ready():
         print("Server name: {}".format(channel.server.name))
         print("Channel name: {}".format(channel.name))
         print("Channel ID: {}".format(channel.id))
+    get_mail_log()
 
 
 @client.event
@@ -77,11 +80,29 @@ def get_info(message):
 
 # TODO: saving log of mails, adding report functionality
 async def process_mail(message):
+    global mail_data
     # assume that the content string starts with "!mail"
     ctn = "**========== New mail ==========**\n"
     ctn += "__Message ID__: {}\n".format(message.author.id)
     ctn += "__Content__: {}\n".format(message.content[5:].strip())
+    mail_data[message.id] = (message.author.id, message.content[5:].strip())
+    write_mail_log()
     await client.send_message(client.get_channel(channel_mail), content=ctn)
+
+
+def get_mail_log():
+    global mail_data, mail_json_path
+    try:
+        with open(mail_json_path, "r") as mail_json_file:
+            mail_data = json.load(mail_json_file)
+    except:
+        mail_data = {}
+
+
+def write_mail_log():
+    global mail_data, mail_json_path
+    with open(mail_json_path, 'w') as mail_json_file:
+        json.dump(mail_data, mail_json_file)
 
 
 client.run(token)
