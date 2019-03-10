@@ -4,16 +4,19 @@ import json
 release_ver = False
 client = discord.Client(max_messages=10000)
 mail_json_path = "mails.json"
-mail_data = None
+mail_data = {}
+report_list_path = "reported.txt"
+reported_user_list = []
 
 if release_ver:
     with open("token_release.txt", "r") as token_file:
-        token = token_file.read().split('\n')[0]
+        token = token_file.read().strip()
     channel_in = "368797408479412226" # ahricord main
     channel_out = "418062533732335626" # logger channel
+    channel_mail = "" # TODO: must be filled with post-office channel ID
 else:
     with open("token_test.txt", "r") as token_file:
-        token = token_file.read().split('\n')[0]
+        token = token_file.read().strip()
     channel_in = "483529593089687552" # UnlikeServer spam channel
     channel_out = "228160636742402058" # another spam channel
     channel_mail = "228160636742402058"
@@ -30,6 +33,7 @@ async def on_ready():
         print("Channel name: {}".format(channel.name))
         print("Channel ID: {}".format(channel.id))
     get_mail_log()
+    get_reported_users_list()
 
 
 @client.event
@@ -38,6 +42,8 @@ async def on_message(message):
         if str(type(message.channel)) == "<class 'discord.channel.PrivateChannel'>" and \
                 message.content.split()[0] == "!mail":
             await process_mail(message)
+        elif message.channel.id == channel_mail and message.content.split()[0] == "!report":
+            await report(message)
         return
     ctn = "**========== Message received ==========**\n"
     ctn += get_info(message)
@@ -78,12 +84,12 @@ def get_info(message):
     return ctn
 
 
-# TODO: saving log of mails, adding report functionality
+# TODO: do not receive mails from reported users
 async def process_mail(message):
     global mail_data
     # assume that the content string starts with "!mail"
     ctn = "**========== New mail ==========**\n"
-    ctn += "__Message ID__: {}\n".format(message.author.id)
+    ctn += "__Message ID__: {}\n".format(message.id)
     ctn += "__Content__: {}\n".format(message.content[5:].strip())
     mail_data[message.id] = (message.author.id, message.content[5:].strip())
     write_mail_log()
@@ -101,8 +107,40 @@ def get_mail_log():
 
 def write_mail_log():
     global mail_data, mail_json_path
-    with open(mail_json_path, 'w') as mail_json_file:
+    with open(mail_json_path, "w") as mail_json_file:
         json.dump(mail_data, mail_json_file)
+
+
+def get_reported_users_list():
+    global reported_user_list, report_list_path
+    reported_user_list = []
+    try:
+        with open(report_list_path, "r") as report_file:
+            for line in report_file.readlines():
+                reported_user_list.append(line.strip())
+    except:
+        pass
+
+
+async def report(message):
+    global mail_data, reported_user_list, report_list_path
+    report_id = message.content[7:].strip()
+    try:
+        add_id = mail_data[report_id][0]
+    except:
+        ctn = "Message ID not found.\n"
+        await client.send_message(client.get_channel(channel_mail), content=ctn)
+        return
+    if add_id in reported_user_list:
+        ctn = "This user has already been reported.\n"
+        await client.send_message(client.get_channel(channel_mail), content=ctn)
+        return
+    reported_user_list.append(add_id)
+    with open(report_list_path, "a") as report_file:
+        report_file.write(add_id + "\n")
+    ctn = "**========== Mail Reported ==========**\n"
+    ctn += "__Message ID__: {}\n".format(add_id)
+    await client.send_message(client.get_channel(channel_mail), content=ctn)
 
 
 client.run(token)
