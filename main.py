@@ -1,6 +1,6 @@
 import discord
 
-release_ver = True
+release_ver = False
 
 client = discord.Client(max_messages=10000)
 
@@ -10,7 +10,7 @@ if release_ver:
     channel_in = "368797408479412226" # ahricord main
     channel_out = "418062533732335626" # logger channel
 else:
-    with open("token.txt", "r") as token_file:
+    with open("token_test.txt", "r") as token_file:
         token = token_file.read().split('\n')[0]
     channel_in = "483529593089687552" # UnlikeServer spam channel
     channel_out = "228160636742402058" # another spam channel
