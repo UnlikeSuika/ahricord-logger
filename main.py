@@ -13,7 +13,7 @@ if release_ver:
         token = token_file.read().strip()
     channel_in = "368797408479412226" # ahricord main
     channel_out = "418062533732335626" # logger channel
-    channel_mail = "" # TODO: must be filled with post-office channel ID
+    channel_mail = "554273414991314955"
 else:
     with open("token_test.txt", "r") as token_file:
         token = token_file.read().strip()
@@ -84,9 +84,13 @@ def get_info(message):
     return ctn
 
 
-# TODO: do not receive mails from reported users
 async def process_mail(message):
-    global mail_data
+    global mail_data, reported_user_list
+    if message.author.id in reported_user_list:
+        ctn = "You have been reported. You cannot send any more suggestions.\n"
+        # assumes that message is within PrivateChannel
+        await client.send_message(message.channel, content=ctn)
+        return
     # assume that the content string starts with "!mail"
     ctn = "**========== New mail ==========**\n"
     ctn += "__Message ID__: {}\n".format(message.id)
