@@ -1,5 +1,10 @@
 import discord
 import json
+import datetime
+import logging
+import sys
+import traceback
+
 
 release_ver = False
 client = discord.Client(max_messages=10000)
@@ -7,19 +12,46 @@ mail_json_path = "mails.json"
 mail_data = {}
 report_list_path = "reported.txt"
 reported_user_list = []
+log = None
+log_path = "log.txt"
+logging.basicConfig(filename=log_path,
+                    filemode="a",
+                    format="%(asctime)s:%(levelname)s:%(name)s: %(message)s",
+                    level=logging.INFO)
+
 
 if release_ver:
     with open("token_release.txt", "r") as token_file:
         token = token_file.read().strip()
-    channel_in = "368797408479412226" # ahricord main
+    # list of channels to receive messages from and write into log.txt
+    channels_in = ["368797408479412226", "554273414991314955"]  # ahricord main, post-office
+    # channel to receive messages specifically for relaying to log channel
+    channel_to_log = "368797408479412226" # ahricord main
+    # channel to output messages from `channel_to_log`
     channel_out = "418062533732335626" # logger channel
+    # post-office channel
     channel_mail = "554273414991314955"
 else:
     with open("token_test.txt", "r") as token_file:
         token = token_file.read().strip()
-    channel_in = "483529593089687552" # UnlikeServer spam channel
-    channel_out = "228160636742402058" # another spam channel
-    channel_mail = "228160636742402058" #"434757762707095554"
+    channels_in = ["262089968950706188", "228160636742402058", "483529593089687552"]
+    channel_to_log = "262089968950706188"
+    channel_out = "483529593089687552" # another spam channel
+    channel_mail = "483529593089687552" # "228160636742402058"
+
+
+@client.event
+async def on_error(event, *args, **kwargs):
+    global log_path
+    ctn = "Event: {}\n".format(str(event))
+    ctn += "Args: {}\n".format(str(args))
+    ctn += "KWArgs: {}\n".format(str(kwargs))
+    exc_type, exc_val, tb = sys.exc_info()
+    ctn += "Exception info: {0}, {1}, {2}\n".format(str(exc_type), str(exc_val), str(tb))
+    print(ctn)
+    logging.error(ctn)
+    traceback.print_tb(tb, file=log_path)
+    traceback.print_tb(tb, file=None)
 
 
 @client.event
@@ -27,18 +59,37 @@ async def on_ready():
     print("Name: " + client.user.name)
     print("ID: " + client.user.id)
     channels = client.get_all_channels()
+    open_log()
+    ctn = "========== {0} ==========\n".format(str(datetime.datetime.now()))
+    ctn += "Bot is now booting up.\n"
     for channel in channels:
-        print("--------------")
-        print("Server name: {}".format(channel.server.name))
-        print("Channel name: {}".format(channel.name))
-        print("Channel ID: {}".format(channel.id))
+        ctn += "--------------\n"
+        ctn += "Server name: {}\n".format(channel.server.name)
+        ctn += "Channel name: {}\n".format(channel.name)
+        ctn += "Channel ID: {}\n".format(channel.id)
+    print(ctn)
+    write_log(ctn)
+    close_log()
     get_mail_log()
     get_reported_users_list()
 
 
 @client.event
 async def on_message(message):
-    if not message.channel == client.get_channel(channel_in):
+    global channel_out, channels_in, channel_to_log
+    if message.channel.id in channels_in or \
+            str(type(message.channel)) == "<class 'discord.channel.PrivateChannel'>":
+        open_log()
+        ctn = "----- on_message -----\n"
+        ctn += "timestamp: {0}\n".format(str(message.timestamp))
+        ctn += "author name: {0}\n".format(message.author.name)
+        ctn += "author ID: {0}\n".format(message.author.id)
+        ctn += "content: {0}\n".format(message.content)
+        ctn += "server: {0}\n".format(str(message.server))
+        ctn += "channel: {0}\n".format(str(message.channel))
+        write_log(ctn)
+        close_log()
+    if message.channel.id != channel_to_log:
         if str(type(message.channel)) == "<class 'discord.channel.PrivateChannel'>" and \
                 message.content.split()[0] == "!mail":
             await process_mail(message)
@@ -52,7 +103,8 @@ async def on_message(message):
 
 @client.event
 async def on_message_delete(message):
-    if not message.channel == client.get_channel(channel_in):
+    global channel_to_log, channel_out
+    if message.channel.id != channel_to_log:
         return
     ctn = "**========== Message deleted ==========**\n"
     ctn += get_info(message)
@@ -61,7 +113,8 @@ async def on_message_delete(message):
 
 @client.event
 async def on_message_edit(before, after):
-    if not before.channel == client.get_channel(channel_in):
+    global channel_to_log, channel_out
+    if before.channel.id != channel_to_log:
         return
     ctn = "**========== Message edited ==========**\n"
     ctn += "**BEFORE**\n"
@@ -146,6 +199,23 @@ async def report(message):
     ctn += "__Message ID__: {}\n".format(add_id)
     ctn += "__Content__: {}\n".format(mail_data[report_id][1])
     await client.send_message(client.get_channel(channel_mail), content=ctn)
+
+
+def open_log():
+    global log, log_path
+    if (log is None) or log.closed:
+        log = open(log_path, "a")
+
+
+def close_log():
+    global log
+    if (not log is None) and (not log.closed):
+        log.close()
+
+
+def write_log(content):
+    global log
+    log.write(content + "\n")
 
 
 client.run(token)
