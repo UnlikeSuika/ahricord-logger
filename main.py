@@ -1,6 +1,10 @@
 import discord
 import json
 import datetime
+import logging
+import sys
+import traceback
+
 
 release_ver = False
 client = discord.Client(max_messages=10000)
@@ -10,6 +14,11 @@ report_list_path = "reported.txt"
 reported_user_list = []
 log = None
 log_path = "log.txt"
+logging.basicConfig(filename=log_path,
+                    filemode="a",
+                    format="%(asctime)s:%(levelname)s:%(name)s: %(message)s",
+                    level=logging.DEBUG)
+
 
 if release_ver:
     with open("token_release.txt", "r") as token_file:
@@ -22,7 +31,21 @@ else:
         token = token_file.read().strip()
     channel_in = "483529593089687552" # UnlikeServer spam channel
     channel_out = "262089968950706188" # another spam channel
-    channel_mail = "228160636742402058" #"434757762707095554"
+    channel_mail = "434757762707095554" # "228160636742402058"
+
+
+@client.event
+async def on_error(event, *args, **kwargs):
+    global log_path
+    ctn = "Event: {}\n".format(str(event))
+    ctn += "Args: {}\n".format(str(args))
+    ctn += "KWArgs: {}\n".format(str(kwargs))
+    exc_type, exc_val, tb = sys.exc_info()
+    ctn += "Exception info: {0}, {1}, {2}\n".format(str(exc_type), str(exc_val), str(tb))
+    print(ctn)
+    logging.error(ctn)
+    traceback.print_tb(tb, file=log_path)
+    traceback.print_tb(tb, file=None)
 
 
 @client.event
