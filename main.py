@@ -19,7 +19,7 @@ else:
         token = token_file.read().strip()
     channel_in = "483529593089687552" # UnlikeServer spam channel
     channel_out = "228160636742402058" # another spam channel
-    channel_mail = "228160636742402058"
+    channel_mail = "228160636742402058" #"434757762707095554"
 
 
 @client.event
@@ -144,6 +144,7 @@ async def report(message):
         report_file.write(add_id + "\n")
     ctn = "**========== Mail Reported ==========**\n"
     ctn += "__Message ID__: {}\n".format(add_id)
+    ctn += "__Content__: {}\n".format(mail_data[report_id][1])
     await client.send_message(client.get_channel(channel_mail), content=ctn)
 
 
