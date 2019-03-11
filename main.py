@@ -17,21 +17,27 @@ log_path = "log.txt"
 logging.basicConfig(filename=log_path,
                     filemode="a",
                     format="%(asctime)s:%(levelname)s:%(name)s: %(message)s",
-                    level=logging.DEBUG)
+                    level=logging.INFO)
 
 
 if release_ver:
     with open("token_release.txt", "r") as token_file:
         token = token_file.read().strip()
-    channel_in = "368797408479412226" # ahricord main
+    # list of channels to receive messages from and write into log.txt
+    channels_in = ["368797408479412226", "554273414991314955"]  # ahricord main, post-office
+    # channel to receive messages specifically for relaying to log channel
+    channel_to_log = "368797408479412226" # ahricord main
+    # channel to output messages from `channel_to_log`
     channel_out = "418062533732335626" # logger channel
+    # post-office channel
     channel_mail = "554273414991314955"
 else:
     with open("token_test.txt", "r") as token_file:
         token = token_file.read().strip()
-    channel_in = "483529593089687552" # UnlikeServer spam channel
-    channel_out = "262089968950706188" # another spam channel
-    channel_mail = "434757762707095554" # "228160636742402058"
+    channels_in = ["262089968950706188", "228160636742402058", "483529593089687552"]
+    channel_to_log = "262089968950706188"
+    channel_out = "483529593089687552" # another spam channel
+    channel_mail = "483529593089687552" # "228160636742402058"
 
 
 @client.event
@@ -70,8 +76,9 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
-    global channel_out
-    if not (message.channel.id == channel_out):
+    global channel_out, channels_in, channel_to_log
+    if message.channel.id in channels_in or \
+            str(type(message.channel)) == "<class 'discord.channel.PrivateChannel'>":
         open_log()
         ctn = "----- on_message -----\n"
         ctn += "timestamp: {0}\n".format(str(message.timestamp))
@@ -82,7 +89,7 @@ async def on_message(message):
         ctn += "channel: {0}\n".format(str(message.channel))
         write_log(ctn)
         close_log()
-    if not message.channel == client.get_channel(channel_in):
+    if message.channel.id != channel_to_log:
         if str(type(message.channel)) == "<class 'discord.channel.PrivateChannel'>" and \
                 message.content.split()[0] == "!mail":
             await process_mail(message)
@@ -96,7 +103,8 @@ async def on_message(message):
 
 @client.event
 async def on_message_delete(message):
-    if not message.channel == client.get_channel(channel_in):
+    global channel_to_log, channel_out
+    if message.channel.id != channel_to_log:
         return
     ctn = "**========== Message deleted ==========**\n"
     ctn += get_info(message)
@@ -105,7 +113,8 @@ async def on_message_delete(message):
 
 @client.event
 async def on_message_edit(before, after):
-    if not before.channel == client.get_channel(channel_in):
+    global channel_to_log, channel_out
+    if before.channel.id != channel_to_log:
         return
     ctn = "**========== Message edited ==========**\n"
     ctn += "**BEFORE**\n"
