@@ -6,7 +6,7 @@ import sys
 import traceback
 
 
-release_ver = False
+release_ver = True
 client = discord.Client(max_messages=10000)
 mail_json_path = "mails.json"
 mail_data = {}
@@ -18,6 +18,7 @@ logging.basicConfig(filename=log_path,
                     filemode="a",
                     format="%(asctime)s:%(levelname)s:%(name)s: %(message)s",
                     level=logging.INFO)
+adminId = "191135925609168896"
 
 
 if release_ver:
@@ -76,7 +77,7 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
-    global channel_out, channels_in, channel_to_log
+    global channel_out, channels_in, channel_to_log, adminId
     if message.channel.id in channels_in or \
             str(type(message.channel)) == "<class 'discord.channel.PrivateChannel'>":
         open_log()
@@ -93,7 +94,9 @@ async def on_message(message):
         if str(type(message.channel)) == "<class 'discord.channel.PrivateChannel'>" and \
                 message.content.split()[0] == "!mail":
             await process_mail(message)
-        elif message.channel.id == channel_mail and message.content.split()[0] == "!report":
+        # TODO: check for the admin roles instead of a single admin user ID
+        elif message.channel.id == channel_mail and message.content.split()[0] == "!report" \
+                and message.author.id == adminId:
             await report(message)
         return
     ctn = "**========== Message received ==========**\n"
