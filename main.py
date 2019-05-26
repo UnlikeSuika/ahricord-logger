@@ -6,7 +6,7 @@ import sys
 import traceback
 
 
-release_ver = True
+release_ver = False
 client = discord.Client(max_messages=10000)
 mail_json_path = "mails.json"
 mail_data = {}
